@@ -7,6 +7,7 @@ signature fields using pyHanko.
 from __future__ import annotations
 
 import os
+import sys
 import tkinter as tk
 from dataclasses import dataclass, field
 from tkinter import filedialog, messagebox, ttk
@@ -662,7 +663,13 @@ def main() -> None:
 
     if TkinterDnD is not None:
         try:
-            root = TkinterDnD.Tk()
+            if sys.platform == "darwin":
+                # TkinterDnD.Tk() creates a spurious blank window on macOS;
+                # load the extension into a plain Tk root instead.
+                root = tk.Tk()
+                TkinterDnD._require(root)
+            else:
+                root = TkinterDnD.Tk()
             dnd_available = True
         except Exception as exc:
             print(f"Drag-and-drop disabled: {exc}")
