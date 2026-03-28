@@ -662,18 +662,23 @@ def main() -> None:
     dnd_available = False
 
     if TkinterDnD is not None:
-        try:
-            if sys.platform == "darwin":
-                # TkinterDnD.Tk() creates a spurious blank window on macOS;
-                # load the extension into a plain Tk root instead.
-                root = tk.Tk()
-                TkinterDnD._require(root)
-            else:
-                root = TkinterDnD.Tk()
-            dnd_available = True
-        except Exception as exc:
-            print(f"Drag-and-drop disabled: {exc}")
+        if sys.platform == "darwin":
+            # On macOS, TkinterDnD.Tk() creates a spurious blank window.
+            # Create root once, then load the DnD extension into it.
+            # If _require fails, root is already set — no second window is created.
             root = tk.Tk()
+            try:
+                TkinterDnD._require(root)
+                dnd_available = True
+            except Exception as exc:
+                print(f"Drag-and-drop disabled: {exc}")
+        else:
+            try:
+                root = TkinterDnD.Tk()
+                dnd_available = True
+            except Exception as exc:
+                print(f"Drag-and-drop disabled: {exc}")
+                root = tk.Tk()
     else:
         root = tk.Tk()
 
