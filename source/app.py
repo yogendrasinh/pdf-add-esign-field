@@ -626,10 +626,11 @@ class App:
             messagebox.showwarning("No fields", "Add at least one signature field.")
             return
 
+        base = os.path.splitext(os.path.basename(self.state.pdf_path))[0]
         out_path = filedialog.asksaveasfilename(
             defaultextension=".pdf",
             filetypes=[("PDF files", "*.pdf")],
-            initialfile="output_with_fields.pdf",
+            initialfile=f"{base}_blank_sign.pdf",
         )
         if not out_path:
             return  # user cancelled
