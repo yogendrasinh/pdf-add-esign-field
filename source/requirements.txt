@@ -1,0 +1,4 @@
+pyHanko
+PyMuPDF
+Pillow
+tkinterdnd2
