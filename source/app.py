@@ -16,7 +16,12 @@ import fitz  # PyMuPDF
 from PIL import Image, ImageTk
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
-from tkinterdnd2 import DND_FILES, TkinterDnD
+
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+except Exception:
+    DND_FILES = None
+    TkinterDnD = None
 
 CANVAS_MAX_W = 600
 CANVAS_MAX_H = 800
@@ -113,7 +118,7 @@ class CoordConverter:
 # ---------------------------------------------------------------------------
 
 class PageRenderer:
-    """Renders a PDF page to an ImageTk.PhotoImage using PyMuPDF."""
+    """Renders a PDF page to a PIL image using PyMuPDF."""
 
     def render(
         self,
@@ -121,9 +126,9 @@ class PageRenderer:
         page_index: int,
         max_width: int = CANVAS_MAX_W,
         max_height: int = CANVAS_MAX_H,
-    ) -> tuple[ImageTk.PhotoImage, int, int, float, float]:
+    ) -> tuple[Image.Image, int, int, float, float]:
         """
-        Returns (photo_image, actual_px_w, actual_px_h, pdf_page_w_pts, pdf_page_h_pts).
+        Returns (pil_image, actual_px_w, actual_px_h, pdf_page_w_pts, pdf_page_h_pts).
         """
         doc = fitz.open(pdf_path)
         page = doc[page_index]
@@ -134,10 +139,9 @@ class PageRenderer:
         pix = page.get_pixmap(matrix=mat, alpha=False)
 
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        photo = ImageTk.PhotoImage(img)
         doc.close()
 
-        return photo, pix.width, pix.height, rect.width, rect.height
+        return img, pix.width, pix.height, rect.width, rect.height
 
 
 # ---------------------------------------------------------------------------
@@ -174,10 +178,17 @@ class App:
     CANVAS_TAG_DRAG    = "drag_rect"
     CANVAS_TAG_SAVED   = "saved_rect"
 
-    def __init__(self, root: TkinterDnD.Tk) -> None:
+    def __init__(
+        self,
+        root: tk.Tk,
+        dnd_available: bool = False,
+        dnd_error: Optional[str] = None,
+    ) -> None:
         self.root = root
         self.root.title("PDF Signature Field Placer")
         self.root.resizable(False, False)
+        self.dnd_available = dnd_available
+        self.dnd_error = dnd_error
 
         self.state    = AppState()
         self.renderer = PageRenderer()
@@ -187,7 +198,8 @@ class App:
         self._photo: Optional[ImageTk.PhotoImage] = None
 
         self._build_ui()
-        self._setup_dnd()
+        if self.dnd_available:
+            self._setup_dnd()
 
     # ------------------------------------------------------------------
     # UI construction
@@ -200,7 +212,10 @@ class App:
         top = tk.Frame(self.root, bd=1, relief=tk.GROOVE)
         top.pack(fill=tk.X, **pad)
 
-        self.lbl_file = tk.Label(top, text="Drop a PDF here or click Browse", anchor="w")
+        file_label = "Drop a PDF here or click Browse"
+        if not self.dnd_available:
+            file_label = "Click Browse to open a PDF"
+        self.lbl_file = tk.Label(top, text=file_label, anchor="w")
         self.lbl_file.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=4)
 
         tk.Button(top, text="Browse", command=self._browse).pack(side=tk.RIGHT, padx=4)
@@ -313,13 +328,26 @@ class App:
         )
         self.lbl_coords.pack(fill=tk.X, padx=4)
 
+        if not self.dnd_available and self.dnd_error:
+            self.root.after(0, self._show_dnd_warning)
+
     # ------------------------------------------------------------------
     # Drag-and-drop
     # ------------------------------------------------------------------
 
     def _setup_dnd(self) -> None:
+        if not self.dnd_available or DND_FILES is None:
+            return
         self.root.drop_target_register(DND_FILES)
         self.root.dnd_bind("<<Drop>>", self._on_drop)
+
+    def _show_dnd_warning(self) -> None:
+        messagebox.showwarning(
+            "Drag-and-drop unavailable",
+            "The drag-and-drop extension could not be loaded on this Mac.\n\n"
+            "You can still use the app normally with the Browse button.\n\n"
+            f"Details:\n{self.dnd_error}",
+        )
 
     def _on_drop(self, event) -> None:
         # tkinterdnd2 wraps paths in {} when they contain spaces
@@ -390,7 +418,7 @@ class App:
         self.state.drag_start = None
         self.state.drag_end   = None
 
-        photo, px_w, px_h, pdf_w, pdf_h = self.renderer.render(
+        img, px_w, px_h, pdf_w, pdf_h = self.renderer.render(
             self.state.pdf_path,
             self.state.current_page_index,
         )
@@ -400,11 +428,16 @@ class App:
         self.state.page_width_pts    = pdf_w
         self.state.page_height_pts   = pdf_h
 
-        self._photo = photo  # keep reference
+        photo = ImageTk.PhotoImage(img, master=self.canvas)
+        self._photo = photo  # keep reference bound to this canvas/root
         self.canvas.config(width=px_w, height=px_h)
         self.canvas.delete("all")
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=photo,
-                                  tag=self.CANVAS_TAG_PREVIEW)
+        self.canvas.create_image(
+            0, 0,
+            anchor=tk.NW,
+            image=self._photo,
+            tags=self.CANVAS_TAG_PREVIEW,
+        )
 
         self._redraw_saved_fields()
         self._update_coord_label()
@@ -456,7 +489,7 @@ class App:
             self.canvas.create_rectangle(
                 x1, y1, x2, y2,
                 outline="red", width=2, dash=(4, 2),
-                tag=self.CANVAS_TAG_DRAG,
+                tags=self.CANVAS_TAG_DRAG,
             )
 
     def _redraw_saved_fields(self) -> None:
@@ -470,13 +503,13 @@ class App:
             self.canvas.create_rectangle(
                 cx1, cy1, cx2, cy2,
                 outline="blue", width=2, dash=(6, 3),
-                tag=self.CANVAS_TAG_SAVED,
+                tags=self.CANVAS_TAG_SAVED,
             )
             # Field name label above the rectangle
             self.canvas.create_text(
                 cx1 + 2, cy1 - 2, anchor=tk.SW,
                 text=f.field_name, fill="blue", font=("Arial", 8),
-                tag=self.CANVAS_TAG_SAVED,
+                tags=self.CANVAS_TAG_SAVED,
             )
 
     def _update_coord_label(self) -> None:
@@ -638,8 +671,22 @@ class App:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    root = TkinterDnD.Tk()
-    app = App(root)
+    dnd_available = False
+    dnd_error = None
+
+    if TkinterDnD is not None:
+        try:
+            root = TkinterDnD.Tk()
+            dnd_available = True
+        except Exception as exc:
+            dnd_error = str(exc)
+            print(f"Drag-and-drop disabled: {exc}")
+            root = tk.Tk()
+    else:
+        dnd_error = "tkinterdnd2 is not installed."
+        root = tk.Tk()
+
+    app = App(root, dnd_available=dnd_available, dnd_error=dnd_error)
     root.mainloop()
 
 
