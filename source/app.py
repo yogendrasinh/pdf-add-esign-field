@@ -658,15 +658,17 @@ class App:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    root = tk.Tk()
     dnd_available = False
 
     if TkinterDnD is not None:
         try:
-            TkinterDnD._require(root)
+            root = TkinterDnD.Tk()
             dnd_available = True
         except Exception as exc:
             print(f"Drag-and-drop disabled: {exc}")
+            root = tk.Tk()
+    else:
+        root = tk.Tk()
 
     app = App(root, dnd_available=dnd_available)
     root.mainloop()
