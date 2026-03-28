@@ -182,13 +182,11 @@ class App:
         self,
         root: tk.Tk,
         dnd_available: bool = False,
-        dnd_error: Optional[str] = None,
     ) -> None:
         self.root = root
         self.root.title("PDF Signature Field Placer")
         self.root.resizable(False, False)
         self.dnd_available = dnd_available
-        self.dnd_error = dnd_error
 
         self.state    = AppState()
         self.renderer = PageRenderer()
@@ -328,9 +326,6 @@ class App:
         )
         self.lbl_coords.pack(fill=tk.X, padx=4)
 
-        if not self.dnd_available and self.dnd_error:
-            self.root.after(0, self._show_dnd_warning)
-
     # ------------------------------------------------------------------
     # Drag-and-drop
     # ------------------------------------------------------------------
@@ -340,14 +335,6 @@ class App:
             return
         self.root.drop_target_register(DND_FILES)
         self.root.dnd_bind("<<Drop>>", self._on_drop)
-
-    def _show_dnd_warning(self) -> None:
-        messagebox.showwarning(
-            "Drag-and-drop unavailable",
-            "The drag-and-drop extension could not be loaded on this Mac.\n\n"
-            "You can still use the app normally with the Browse button.\n\n"
-            f"Details:\n{self.dnd_error}",
-        )
 
     def _on_drop(self, event) -> None:
         # tkinterdnd2 wraps paths in {} when they contain spaces
@@ -671,22 +658,17 @@ class App:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    root = tk.Tk()
     dnd_available = False
-    dnd_error = None
 
     if TkinterDnD is not None:
         try:
-            root = TkinterDnD.Tk()
+            TkinterDnD._require(root)
             dnd_available = True
         except Exception as exc:
-            dnd_error = str(exc)
             print(f"Drag-and-drop disabled: {exc}")
-            root = tk.Tk()
-    else:
-        dnd_error = "tkinterdnd2 is not installed."
-        root = tk.Tk()
 
-    app = App(root, dnd_available=dnd_available, dnd_error=dnd_error)
+    app = App(root, dnd_available=dnd_available)
     root.mainloop()
 
 

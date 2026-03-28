@@ -206,3 +206,4 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 package_gen/*.zip
+package_gen/*.app

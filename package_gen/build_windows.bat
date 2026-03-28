@@ -7,6 +7,7 @@ set APP_NAME=pdf-add-esign-field
 set ENTRY_POINT=%PROJECT_ROOT%source\app.py
 set VENV_PYTHON=%PROJECT_ROOT%.venv\Scripts\python.exe
 set VENV_PIP=%PROJECT_ROOT%.venv\Scripts\pip.exe
+set ICON_PATH=%SCRIPT_DIR%%APP_NAME%.ico
 
 set /p VERSION=<%SCRIPT_DIR%version.txt
 set VERSION=%VERSION: =%
@@ -14,6 +15,12 @@ set VERSION=%VERSION: =%
 echo [build] App:     %APP_NAME%
 echo [build] Version: %VERSION%
 echo [build] Entry:   %ENTRY_POINT%
+echo [build] Icon:    %ICON_PATH%
+
+if not exist "%ICON_PATH%" (
+    echo ERROR: Icon file not found: %ICON_PATH%
+    pause & exit /b 1
+)
 
 if not exist "%VENV_PYTHON%" (
     echo ERROR: .venv not found. Run run.bat first to create the virtual environment.
@@ -42,6 +49,7 @@ cd /d "%SCRIPT_DIR%"
     --onedir ^
     --windowed ^
     --name "%APP_NAME%" ^
+    --icon "%ICON_PATH%" ^
     --add-data "%TKDND_SOURCE%;tkinterdnd2/tkdnd" ^
     --collect-all pyhanko ^
     --collect-all pyhanko_certvalidator ^
