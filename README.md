@@ -25,15 +25,11 @@ Individuals and small organizations that need documents signed repeatedly like b
 
 ## Download and Run (recommended)
 
-Pre-built binaries are available for **Windows** and **macOS** on the [GitHub Releases page](https://github.com/yogendrasinh/pdf-add-esign-field/releases/latest).
+Pre-built binaries are available for **macOS** in the release page. 
 
-1. Download the ZIP for your platform
-2. Unzip it
-3. Run `pdf-add-esign-field.exe` (Windows) or `pdf-add-esign-field.app` (Mac)
 
-No installation or Python required.
-
-> **Linux users** — see [Running from source](#running-from-source-linux--advanced-users) below.
+> **Windows** and **Linux users** can run from the source.
+> Also see, [Running from source](#running-from-source-linux--advanced-users) below.
 
 ## How to use
 
@@ -51,12 +47,6 @@ The original PDF is not modified. A new file is saved alongside it.
 
 Make sure you have Python 3.8+ installed.
 
-```bash
-pip install -r source/requirements.txt
-python3 source/app.py
-```
-> [!WARNING] Consider running above script in virtual environment. 
-
 On **Windows**, you can also run:
 
 ```bat
@@ -68,6 +58,14 @@ On **macOS**, you can also run:
 ```bash
 ./run.sh
 ```
+
+If you don't care about creating a virtual environment or if the `run.sh` doesn't work for you (works on Mac but Linux tests are pending). 
+```bash
+pip install -r source/requirements.txt
+python3 source/app.py
+```
+> Consider running above script in virtual environment. 
+
 
 These launcher scripts create a virtual environment and install dependencies automatically.
 
