@@ -23,14 +23,6 @@ That's it. This is a single-function utility.
 
 Individuals and small organizations that need documents signed repeatedly like board meeting minutes, invoices, contracts, approval forms and want a free, simple way to prepare those PDFs for digital signing.
 
-## Download and Run (recommended)
-
-Pre-built binaries are available for **macOS** in the release page. 
-
-
-> **Windows** and **Linux users** can run from the source.
-> Also see, [Running from source](#running-from-source-linux--advanced-users) below.
-
 ## How to use
 
 1. Launch the app
